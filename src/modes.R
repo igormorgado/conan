@@ -58,10 +58,12 @@ minslope <- function(x, y) {
 #
 n.modes <- 4 # USER SELECTED: Not automatic
 bw.max <- max(subset(X, id==n.modes)$bw)
+
 modes <- sapply(1:n.modes, function(i) {
   Y <- subset(X, id==i & bw <= bw.max)
   minslope(Y$bw, Y$Mode)
 })
+
 #
 # Plot the results.
 #
