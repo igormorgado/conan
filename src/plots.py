@@ -8,16 +8,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from analysis import *
 
 
-# OLD HIsTGRAM curved
-#    hist_ax.fill_between(x, y, color='#a0a0a0')
-# def histogram(axes, distribution, modes):
-#     y, bins, patches = axes.hist(distribution, 100, color='black', density=True, alpha=.2)
-#     axes.set_ylabel('Density')
-#     axes.set_ylim(0, None)
-#     axes.set_xlim(0, 255)
-# 
-#     return axes
-
 def plot_mode_trace(axes, mode_dataset, minima_points):
     # Helper variables to make graph calls simpler
     mode, bw, mode_id = mode_dataset[:,1], mode_dataset[:,0], mode_dataset[:,2]
@@ -82,15 +72,14 @@ def plot_histogram(axes, distribution):
 
 
 def plot_modelines(axes, modes, height=1):
-    mlines = axes.vlines(modes, 0, height, 'k', alpha=.5, linestyles='dashed', legend='Modas')
+    mlines = axes.vlines(modes, 0, height, 'k', alpha=.5, linestyles='dashed')
     axes.set_xlabel('Modes')
     return axes
 
 
-def plot_peaks(axes, peaks_idx, half, full, show_width=False):
-
-    px, py = peaks_idx[:,0], peaks_idx[:,1]
-    axes.plot(px, py, 'ko', alpha=.4)
+def plot_peaks(axes, kde_xy, peaks_idx, half, full, show_width=False):
+    x_peaks, y_peaks = np.array(kde_xy)[:, peaks_idx]
+    axes.plot(x_peaks, y_peaks, 'ko', alpha=.4)
 
     if show_width:
         # Assume simmetry
@@ -112,7 +101,7 @@ def plot_curve(axes, x, y):
     return axes
 
 
-def plot_image(axes, image):
+def plot_image(axes, image, vmin=None, vmax=None):
     if (vmin):
         im = axes.imshow(image, cmap='gray', vmin=vmin, vmax=vmax)
     else: 
@@ -126,24 +115,25 @@ def plot_image(axes, image):
     axes.spines['left'].set_visible(False)
     axes.spines['top'].set_visible(False)
 
-    return axes
+    return im
 
-def plot_colorbar(axes, image):
-    cbar = plt.colorbar(image, cax=axes, label='Luminance', orientation='horizontal')
+def plot_colorbar(axes, image_map):
+    cbar = plt.colorbar(image_map, cax=axes, label='Luminance', orientation='horizontal')
     cbar.outline.set_visible(False)
-    # cbar.set_ticks([0, 50, 100, 150, 200, 250, 255])
-    # cbar.set_ticklabels(['0','','','','', '250',''])
     axes.tick_params(direction='in')
     axes.tick_params(which='major', width=.5)
     axes.tick_params(which='minor', width=.2)
     return cbar
 
 
-def shist(axes, image, datapoints, vmin=None, vmax=None):
-
-    # Data image extraction
-    #################################################################
-    x, y, kx, ky, peaks, x_peaks, y_peaks, half, full = datapoints
+def shist(axes,
+          image, 
+          hist_xy=None,
+          kde_xy=None, 
+          peaks=None, 
+          dataset=None,
+          optimalmodes=None,
+          vmin=None, vmax=None):
 
     # Draw Plots
     #################################################################
@@ -151,20 +141,44 @@ def shist(axes, image, datapoints, vmin=None, vmax=None):
     hist_ax = divider.append_axes("bottom", size='25%', pad=0.1)
     cbar_ax = divider.append_axes("bottom", size='5%', pad=0.02)
 
-    plot_image(axes, image)
-    plot_histogram(hist_ax, y)
-    plot_peaks(hist_ax, peaks, half, full, show_width=True)
-    plot_modelines(hist_ax, x_peaks, 1)
-    cbar = plot_colobar(cbar_ax, image)
+    im = plot_image(axes, image)
+    distribution = image.ravel()
+    plot_histogram(hist_ax, distribution)
+
+    if kde_xy is not None:
+        plot_curve(hist_ax, *kde_xy)
+
+    if kde_xy is not None and peaks is not None:
+        peaks_idx, half, full = peaks
+        plot_peaks(hist_ax, kde_xy, peaks_idx, half, full, show_width=True)
+        plot_modelines(hist_ax, kde_xy[0][peaks_idx], 1)
+
+    # TwinX here do not correcly share the hist_ax, instead
+    # uses the main_ax
+    # if dataset is not None:
+    #     mode_ax = plt.twinx()
+    #     plot_mode_trace(mode_ax, dataset, optimalmodes)
+
+    plot_colorbar(cbar_ax, im)
 
     return axes
 
 
 # Convenience functions
-def image_analysis(axes, image_filename, vmin=None, vmax=None, bw='ISJ'):
+def image_analysis(axes, image_filename, n_modes=3, vmin=None, vmax=None, bw='ISJ'):
     image = imageio.imread(image_filename)
-    datapoints = find_datapoints(image, bw=bw)
-    axes = shist(axes, image, datapoints, vmin=vmin, vmax=vmax)
+    hist_xy, kde_xy, peaks = find_datapoints(image, bw=bw)
+    dataset = analyze(image)
+    optimalmodes = find_optimal_modes(dataset, n_modes)
+    axes = shist(axes, 
+                 image, 
+                 hist_xy=hist_xy, 
+                 kde_xy=kde_xy, 
+                 peaks=peaks,
+                 dataset=None,
+                 optimalmodes=None,
+                 vmin=None,
+                 vmax=None)
     return axes
 
 
@@ -182,22 +196,22 @@ def all_image_analysis():
                'imageio:page.png',
              ]
     for img in images:
-        fig, ax = plt.subplots()
+        print(img)
+        fig, axes = plt.subplots()
         fig.suptitle(img)
-        image_analysis(axes, img)
+        axes = image_analysis(axes, img)
     
 
-def camera():
-    fname = 'imageio:camera.png'
-    fig, ax = plt.subplots()
-    fig.suptitle(fname)
-    aaa =  image_analysis(ax, fname)
-    return aaa
+def plot_camera():
+    image_filename = 'imageio:camera.png'
+    fig, axes = plt.subplots(dpi=150)
+    fig.suptitle(image_filename)
+    axes =  image_analysis(axes, image_filename)
+    return fig
 
 
-def plot_test(dataset, image, result):
-    fig, ax1 = plt.subplots(figsize=(6,3), dpi=300)
-    plot_histogram(ax1, image.ravel())
-    ax2 = plt.twinx()
-    plot_mode_trace(ax2, dataset, result)
-    plt.tight_layout()
+def plot_mode_trace_analysis(axes, image, dataset, optimalmodes):
+    plot_histogram(axes, image.ravel())
+    axes2 = axes.twinx()
+    plot_mode_trace(axes2, dataset, optimalmodes)
+    return axes

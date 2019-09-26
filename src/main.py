@@ -11,14 +11,19 @@ from synth import *
 # MAIN
 #
 #################################################
-n_modes = 2 
 #x = build_image_sample(nmodes)
-image_filename = 'imageio:camera.png'
-image = imageio.imread(image_filename)
-dataset = analyze(image)
-result = find_optimal_modes(dataset, n_modes)
+image_filename = 'imageio:clock.png'
+fig, axes = plt.subplots(figsize=(6,4), dpi=150)
+image_analysis(axes, image_filename)
+plt.show()
 
-#plt.close('all')
-plot_test(dataset, image, result)
- # fig,(x, y, kx, ky, peaks, x_peaks, y_peaks, half, full) = camera()
+# image = imageio.imread(image_filename)
 # 
+# hist_xy, kde_xy, peaks = find_datapoints(image)
+# dataset = analyze(image)
+# optimal_modes = find_optimal_modes(dataset, n_modes)
+# 
+# shist(axes, image, hist_xy, kde_xy, peaks, dataset, optimal_modes)
+# 
+# plt.show()
+#plt.close('all')

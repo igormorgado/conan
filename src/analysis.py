@@ -13,7 +13,7 @@ def find_kde(image, bw='ISJ', npoints=512):
     x, y = estimator.fit(image.ravel()).evaluate(npoints)
     y = y[(x>=0) & (x<=255)] 
     x = x[(x>=0) & (x<=255)] 
-    return x, y
+    return (x, y)
 
 
 def find_histogram(image, n=256):
@@ -22,7 +22,7 @@ def find_histogram(image, n=256):
     x = np.arange(n)
     y = np.bincount(image.ravel(), minlength=n)
     y = y/np.sum(y)
-    return  x, y
+    return  (x, y)
 
 
 def find_curves(data):
@@ -31,16 +31,14 @@ def find_curves(data):
     peaks_idx, _ = find_peaks(data)
     half = peak_widths(data, peaks_idx, rel_height=0.5)[:2]
     full = peak_widths(data, peaks_idx, rel_height=1)[:2]
-    return peaks, half, full
+    return (peaks_idx, half, full)
 
 
 def find_datapoints(img, bw='ISJ'):
     hst_xy = find_histogram(img)
     kde_xy = find_kde(img, bw=bw)
-    peaks_idx, half, full = find_curves(kde_xy[1])
-    #x_peaks = kde_xy[0][peaks_idx]
-    #y_peaks = kde_xy[1][peaks_idx]
-    return hst_xy, kde_xy, peaks_idx, half, full
+    peaks = find_curves(kde_xy[1])
+    return hst_xy, kde_xy, peaks
 
 
 def density(values, bw='silverman', n=512):
@@ -49,11 +47,13 @@ def density(values, bw='silverman', n=512):
     return kernel_points, kernel_values, estimator.bw
 
 
+# PROBLEMA AQUI, as vezes retorna nenhum
 def find_modes(kernel_points, kernel_values):
-    return kernel_points[np.where((np.append(kernel_values[1:], -np.inf) < kernel_values) & 
-                       (kernel_values > np.append(-np.inf, kernel_values[:-1])))]
+    return kernel_points[np.where((np.append(kernel_values[1:], -np.inf) <= kernel_values) & 
+                       (kernel_values >= np.append(-np.inf, kernel_values[:-1])))]
 
 
+# TODO: REVER AQUI
 def find_modeid(data, bws):
     dataframe = []
     ids = np.array([1])
@@ -61,6 +61,7 @@ def find_modeid(data, bws):
     for bw in bws:
         kx, ky, _ = density(data, bw=bw)
         mode_new = np.sort(find_modes(kx, ky))
+        print(f'BW: {bw:.3f} Mode_New {mode_new[:3]}')
         d = np.abs(mode_new[:, None] - mode)
         i = np.argmin(d, axis=0)
         g = np.zeros_like(mode_new)
@@ -73,9 +74,11 @@ def find_modeid(data, bws):
         dataframe.append(tmp_array)
     return dataframe
 
-
+# REVER ESTA FUNCAO
 def min_slope(x, y):
     order = np.argsort(x)
+    print(f'xorder: {x[order]} xshape {x.shape}')
+    print(f'yoder: {y[order]} yshape {y.shape}')
     f = splrep(x[order], y[order])
     e = (np.max(x) - np.min(x)) * 1e-4
     def df2(x, f, e):
