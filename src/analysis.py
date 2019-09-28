@@ -5,11 +5,11 @@ from scipy.signal import find_peaks, peak_widths
 from KDEpy import FFTKDE
 
 
-def find_kde(image, bw='ISJ', npoints=512):
+def find_kde(image, bw='ISJ', npoints=512, kernel='gaussian'):
     """ Receives a numpy array containing an image and returns
     image histogram estimatives based on Kernel density function
     with given bandwidth. The data returned are x, y datapoints"""
-    estimator = FFTKDE(kernel='gaussian', bw=bw)
+    estimator = FFTKDE(kernel=kernel, bw=bw)
     x, y = estimator.fit(image.ravel()).evaluate(npoints)
     y = y[(x>=0) & (x<=255)] 
     x = x[(x>=0) & (x<=255)] 
@@ -34,16 +34,16 @@ def find_curves(data):
     return (peaks_idx, half, full)
 
 
-def find_datapoints(img, bw='ISJ'):
+def find_datapoints(img, bw='ISJ', kernel='gaussian'):
     hst_xy = find_histogram(img)
-    kde_xy = find_kde(img, bw=bw)
+    kde_xy = find_kde(img, bw=bw, kernel=kernel)
     peaks = find_curves(kde_xy[1])
     return hst_xy, kde_xy, peaks
 
 
-def density(values, bw='silverman', n=512):
-    estimator = FFTKDE(kernel='gaussian', bw=bw)
-    kernel_points, kernel_values = estimator.fit(values).evaluate(n)
+def density(values, bw='silverman', npoints=512, kernel='gaussian'):
+    estimator = FFTKDE(kernel=kernel, bw=bw)
+    kernel_points, kernel_values = estimator.fit(values).evaluate(npoints)
     return kernel_points, kernel_values, estimator.bw
 
 
@@ -61,7 +61,7 @@ def find_modeid(data, bws):
     for bw in bws:
         kx, ky, _ = density(data, bw=bw)
         mode_new = np.sort(find_modes(kx, ky))
-        print(f'BW: {bw:.3f} Mode_New {mode_new[:3]}')
+        #print(f'BW: {bw:.3f} Mode_New {mode_new[:3]}')
         d = np.abs(mode_new[:, None] - mode)
         i = np.argmin(d, axis=0)
         g = np.zeros_like(mode_new)
@@ -77,8 +77,8 @@ def find_modeid(data, bws):
 # REVER ESTA FUNCAO
 def min_slope(x, y):
     order = np.argsort(x)
-    print(f'xorder: {x[order]} xshape {x.shape}')
-    print(f'yoder: {y[order]} yshape {y.shape}')
+    # print(f'xorder: {x[order]} xshape {x.shape}')
+    # print(f'yoder: {y[order]} yshape {y.shape}')
     f = splrep(x[order], y[order])
     e = (np.max(x) - np.min(x)) * 1e-4
     def df2(x, f, e):
@@ -96,6 +96,7 @@ def optimal_mode(dataset, modeid, max_bandwidth):
     y = dataset[(dataset[:,2] == modeid) & (dataset[:,0] <= max_bandwidth)]
     opt_bandwidth, mode, slope = min_slope(y[:,0], y[:,1])
     return opt_bandwidth, mode, slope
+
 
 def analyze(distribution):
     # Initial bw estimator based on Silverman
@@ -117,7 +118,7 @@ def find_optimal_modes(dataset, n_modes):
     fmtstr = 'Mode ID: {} OptimalBW: {:.2f} Mode: {:.2f} Slope: {}'
     for i in np.arange(n_modes):
         optimal_modes[i] = optimal_mode(dataset, i+1, bw_max)
-        print(fmtstr.format(i+1,*(optimal_modes[i])))
+        # print(fmtstr.format(i+1,*(optimal_modes[i])))
 
     return optimal_modes
 

@@ -165,9 +165,24 @@ def shist(axes,
 
 
 # Convenience functions
-def image_analysis(axes, image_filename, n_modes=3, vmin=None, vmax=None, bw='ISJ'):
+
+def plot_mode_trace_analysis(axes, image, dataset, optimalmodes):
+    plot_histogram(axes, image.ravel())
+    axes2 = axes.twinx()
+    plot_mode_trace(axes2, dataset, optimalmodes)
+    return axes
+
+
+# HELPER FUNCTIONS, based on filename or no parameters at all
+def image_analysis(axes, 
+                   image_filename, 
+                   n_modes=3, 
+                   vmin=None, 
+                   vmax=None, 
+                   bw='ISJ', 
+                   kernel='gaussian'):
     image = imageio.imread(image_filename)
-    hist_xy, kde_xy, peaks = find_datapoints(image, bw=bw)
+    hist_xy, kde_xy, peaks = find_datapoints(image, bw=bw, kernel=kernel)
     dataset = analyze(image)
     optimalmodes = find_optimal_modes(dataset, n_modes)
     axes = shist(axes, 
@@ -182,8 +197,16 @@ def image_analysis(axes, image_filename, n_modes=3, vmin=None, vmax=None, bw='IS
     return axes
 
 
+def plot_newfig(image_filename):
+    fig, axes = plt.subplots(dpi=150)
+    fig.suptitle(image_filename)
+    axes =  image_analysis(axes, image_filename)
+    return fig
 
-# HELPER FUNCTIONS NEED TO BE REPLACED
+
+def plot_camera():
+    return plot_newfig('imageio:camera.png')
+
 
 def all_image_analysis():
     images = [ 'imageio:camera.png',
@@ -196,22 +219,7 @@ def all_image_analysis():
                'imageio:page.png',
              ]
     for img in images:
-        print(img)
-        fig, axes = plt.subplots()
-        fig.suptitle(img)
-        axes = image_analysis(axes, img)
+        fig = plot_newfig(img)
     
 
-def plot_camera():
-    image_filename = 'imageio:camera.png'
-    fig, axes = plt.subplots(dpi=150)
-    fig.suptitle(image_filename)
-    axes =  image_analysis(axes, image_filename)
-    return fig
 
-
-def plot_mode_trace_analysis(axes, image, dataset, optimalmodes):
-    plot_histogram(axes, image.ravel())
-    axes2 = axes.twinx()
-    plot_mode_trace(axes2, dataset, optimalmodes)
-    return axes
