@@ -8,9 +8,9 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from analysis import *
 
 
-def plot_mode_trace(axes, mode_dataset, minima_points):
+def plot_mode_trace(axes, modes_dataset, minima_points):
     # Helper variables to make graph calls simpler
-    mode, bw, mode_id = mode_dataset[:,1], mode_dataset[:,0], mode_dataset[:,2]
+    mode, bw, mode_id = modes_dataset[:,1], modes_dataset[:,0], modes_dataset[:,2]
     min_mode, optimal_bw = minima_points[:,1], minima_points[:,0]
 
     # How to simplify this custom cmap?
@@ -33,11 +33,12 @@ def plot_mode_trace(axes, mode_dataset, minima_points):
     return axes
 
 
-def plot_histogram(axes, distribution):
-    y, bins, patches = axes.hist(distribution, 256, color='#a0a0a0', density=True)
+def plot_histogram(axes, density, nbins=256):
+    values, bins, patches = axes.hist(density, bins=np.arange(nbins+1), color='#a0a0a0', density=True)
 
     axes.set_ylabel('Density')
     axes.set_xlabel('Modes')
+    print(np.max(density))
     axes.set_ylim(0, None)
     axes.set_xlim(0, 255)
 
@@ -48,7 +49,7 @@ def plot_histogram(axes, distribution):
     axes.set_facecolor('#eeeeee')
 
     axes.set_xlim([0,255])
-    axes.set_ylim([0,np.max(y)])
+    axes.set_ylim([0,np.max(values)])
 
     axes.yaxis.set_label_position('left')
     axes.yaxis.set_ticks_position('right')
@@ -134,6 +135,21 @@ def shist(axes,
           dataset=None,
           optimalmodes=None,
           vmin=None, vmax=None):
+    """
+    Draws a full plot showing informations about the image
+
+    Parameters:
+        axes: Matplotlib axes where the plot will be drawn
+        image: Image numpy array
+        hist_xy: Image histogram tuple (values, density)
+        kde_xy: KDE points tuple (values, density)
+        peaks: Peaks analysis triple (peaks indexes, half height width and full height width).
+            Peaks indexes are related to kde_xy position.
+        dataset:
+        optimalmodes:
+        vmin: Use given vmin as limit to display the image, instead matplotlib defaults
+        vmax: Use given vmax as limit to display the image, instead matplotlib defaults
+    """
 
     # Draw Plots
     #################################################################
@@ -164,62 +180,12 @@ def shist(axes,
     return axes
 
 
-# Convenience functions
-
 def plot_mode_trace_analysis(axes, image, dataset, optimalmodes):
+    """Shows the mode trace of a given image over the image histogram"""
     plot_histogram(axes, image.ravel())
     axes2 = axes.twinx()
     plot_mode_trace(axes2, dataset, optimalmodes)
     return axes
 
-
-# HELPER FUNCTIONS, based on filename or no parameters at all
-def image_analysis(axes, 
-                   image_filename, 
-                   n_modes=3, 
-                   vmin=None, 
-                   vmax=None, 
-                   bw='ISJ', 
-                   kernel='gaussian'):
-    image = imageio.imread(image_filename)
-    hist_xy, kde_xy, peaks = find_datapoints(image, bw=bw, kernel=kernel)
-    dataset = analyze(image)
-    optimalmodes = find_optimal_modes(dataset, n_modes)
-    axes = shist(axes, 
-                 image, 
-                 hist_xy=hist_xy, 
-                 kde_xy=kde_xy, 
-                 peaks=peaks,
-                 dataset=None,
-                 optimalmodes=None,
-                 vmin=None,
-                 vmax=None)
-    return axes
-
-
-def plot_newfig(image_filename):
-    fig, axes = plt.subplots(dpi=150)
-    fig.suptitle(image_filename)
-    axes =  image_analysis(axes, image_filename)
-    return fig
-
-
-def plot_camera():
-    return plot_newfig('imageio:camera.png')
-
-
-def all_image_analysis():
-    images = [ 'imageio:camera.png',
-               'imageio:checkerboard.png',
-               'imageio:clock.png',
-               'imageio:coins.png',
-               'imageio:horse.png',
-               'imageio:moon.png',
-               'imageio:text.png',
-               'imageio:page.png',
-             ]
-    for img in images:
-        fig = plot_newfig(img)
-    
 
 

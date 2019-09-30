@@ -5,27 +5,44 @@ from scipy.signal import find_peaks, peak_widths
 from KDEpy import FFTKDE
 
 
-def find_kde(image, bw='ISJ', npoints=512, kernel='gaussian'):
+def find_kde(distribution, bw='silverman', npoints=512, kernel='gaussian'):
     """ Receives a numpy array containing an image and returns
     image histogram estimatives based on Kernel density function
     with given bandwidth. The data returned are x, y datapoints"""
     estimator = FFTKDE(kernel=kernel, bw=bw)
-    x, y = estimator.fit(image.ravel()).evaluate(npoints)
+    x, y = estimator.fit(distribution).evaluate(npoints)
     y = y[(x>=0) & (x<=255)] 
     x = x[(x>=0) & (x<=255)] 
     return (x, y)
 
+def find_kde_from_image(image, bw='silverman', npoints=512, kernel='gaussian'):
+    distribution=image.ravel()
+    return find_kde(distribution=distribution, bw=bw, npoints=npoints, kernel=kernel) 
 
-def find_histogram(image, n=256):
+def find_kde_from_file(filename, bw='silverman', npoints=512, kernel='gaussian'):
+    image = imageio.imread(filename)
+    return find_kde_from_image(image=image, bw=bw, npoints=npoints, kernel=kernel)
+
+
+def find_histogram(distribution, nbins=256):
     """ Receives a numpy array containing an image and returns
     an histogram data x,y datapoints. """
-    x = np.arange(n)
-    y = np.bincount(image.ravel(), minlength=n)
+    x = np.arange(nbins)
+    y = np.bincount(distribution, minlength=nbins)
     y = y/np.sum(y)
     return  (x, y)
 
+def find_histogram_from_image(image, nbins=256):
+    distribution=image.ravel().astype(np.uint8)
+    return find_histogram(distribution=distribution, nbins=nbins)
 
-def find_curves(data):
+
+def find_histogram_from_file(filename, nbins=256):
+    image = imageio.imread(filename)
+    return find_histogram_from_image(image=image, nbins=nbins)
+
+
+def find_curves(distribution):
     """Receives a "continuous" function data and returns it's peaks
     and widths. Assumes simmetry from peaks."""
     peaks_idx, _ = find_peaks(data)

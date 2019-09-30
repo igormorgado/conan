@@ -3,3 +3,4 @@ matplotlib
 ipython
 KDEpy
 imageio
+opencv-python
