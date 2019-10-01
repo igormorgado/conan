@@ -8,7 +8,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from analysis import *
 
 
-def plot_mode_trace(axes, modes_dataset, minima_points):
+def plot_mode_trace(axes, modes_dataset, minima_points, xlabel=True):
     # Helper variables to make graph calls simpler
     mode, bw, mode_id = modes_dataset[:,1], modes_dataset[:,0], modes_dataset[:,2]
     min_mode, optimal_bw = minima_points[:,1], minima_points[:,0]
@@ -22,22 +22,25 @@ def plot_mode_trace(axes, modes_dataset, minima_points):
     norm = mpl.colors.BoundaryNorm(bounds, ncmap.N)
 
     axes.set_yscale('log')
-    trc_sct = axes.scatter(mode, bw, s=1, c=mode_id, cmap=ncmap, norm=norm)
+    #trc_sct = axes.scatter(mode, bw, s=1, c=mode_id, cmap=ncmap, norm=norm)
+    trc_sct = axes.scatter(mode, bw, s=1, c='#444444')
     min_sct = axes.scatter(min_mode, optimal_bw, c='k', alpha=.6)
 
-    axes.set_ylabel('Bandwidth')
-    axes.set_xlabel('Modes')
+    axes.set_ylabel(r'Banda $h$')
+    if xlabel:
+        axes.set_xlabel('Modas')
     axes.set_ylim(np.min(bw), np.max(bw))
     axes.set_xlim(0, 255)
 
     return axes
 
 
-def plot_histogram(axes, density, nbins=256):
+def plot_histogram(axes, density, nbins=256, xlabel=True):
     values, bins, patches = axes.hist(density, bins=np.arange(nbins+1), color='#a0a0a0', density=True)
 
-    axes.set_ylabel('Density')
-    axes.set_xlabel('Modes')
+    axes.set_ylabel('Densidade')
+    if xlabel:
+        axes.set_xlabel('Modas')
     print(np.max(density))
     axes.set_ylim(0, None)
     axes.set_xlim(0, 255)
@@ -72,9 +75,10 @@ def plot_histogram(axes, density, nbins=256):
     return axes
 
 
-def plot_modelines(axes, modes, height=1):
+def plot_modelines(axes, modes, height=1, xlabel=True):
     mlines = axes.vlines(modes, 0, height, 'k', alpha=.5, linestyles='dashed')
-    axes.set_xlabel('Modes')
+    if xlabel:
+        axes.set_xlabel('Modas')
     return axes
 
 
@@ -90,10 +94,10 @@ def plot_peaks(axes, kde_xy, peaks_idx, half, full, show_width=False):
                        x_peaks - half_width, 
                        x_peaks + half_width, 
                        color='k', linestyles='dotted', alpha=.3)
-        axes.hlines(full[1],
-                       x_peaks - full_width,
-                       x_peaks + full_width, 
-                       color='k', linestyles='dotted', alpha=.3)
+        #axes.hlines(full[1],
+        #               x_peaks - full_width,
+        #               x_peaks + full_width, 
+        #               color='k', linestyles='dotted', alpha=.3)
     return axes
 
 
@@ -119,7 +123,7 @@ def plot_image(axes, image, vmin=None, vmax=None):
     return im
 
 def plot_colorbar(axes, image_map):
-    cbar = plt.colorbar(image_map, cax=axes, label='Luminance', orientation='horizontal')
+    cbar = plt.colorbar(image_map, cax=axes, label='Luminância', orientation='horizontal')
     cbar.outline.set_visible(False)
     axes.tick_params(direction='in')
     axes.tick_params(which='major', width=.5)
@@ -154,12 +158,12 @@ def shist(axes,
     # Draw Plots
     #################################################################
     divider = make_axes_locatable(axes)
-    hist_ax = divider.append_axes("bottom", size='25%', pad=0.1)
+    hist_ax = divider.append_axes("bottom", size='30%', pad=0.1)
     cbar_ax = divider.append_axes("bottom", size='5%', pad=0.02)
 
     im = plot_image(axes, image)
     distribution = image.ravel()
-    plot_histogram(hist_ax, distribution)
+    plot_histogram(hist_ax, distribution, xlabel=False)
 
     if kde_xy is not None:
         plot_curve(hist_ax, *kde_xy)
@@ -167,7 +171,7 @@ def shist(axes,
     if kde_xy is not None and peaks is not None:
         peaks_idx, half, full = peaks
         plot_peaks(hist_ax, kde_xy, peaks_idx, half, full, show_width=True)
-        plot_modelines(hist_ax, kde_xy[0][peaks_idx], 1)
+        plot_modelines(hist_ax, kde_xy[0][peaks_idx], 1, xlabel=False)
 
     # TwinX here do not correcly share the hist_ax, instead
     # uses the main_ax

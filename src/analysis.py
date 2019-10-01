@@ -11,6 +11,12 @@ def find_kde(distribution, bw='silverman', npoints=512, kernel='gaussian'):
     with given bandwidth. The data returned are x, y datapoints"""
     estimator = FFTKDE(kernel=kernel, bw=bw)
     x, y = estimator.fit(distribution).evaluate(npoints)
+
+    # Fix silverman bias in small datasets
+    if (bw == 'silverman') and (estimator.bw < 1):
+        estimator = FFTKDE(kernel=kernel, bw=1)
+        x, y = estimator.fit(distribution).evaluate(npoints)
+
     y = y[(x>=0) & (x<=255)] 
     x = x[(x>=0) & (x<=255)] 
     return (x, y)
@@ -45,23 +51,25 @@ def find_histogram_from_file(filename, nbins=256):
 def find_curves(distribution):
     """Receives a "continuous" function data and returns it's peaks
     and widths. Assumes simmetry from peaks."""
-    peaks_idx, _ = find_peaks(data)
-    half = peak_widths(data, peaks_idx, rel_height=0.5)[:2]
-    full = peak_widths(data, peaks_idx, rel_height=1)[:2]
+    peaks_idx, _ = find_peaks(distribution, distance=5 )
+    half = peak_widths(distribution, peaks_idx, rel_height=0.5)[:2]
+    full = peak_widths(distribution, peaks_idx, rel_height=1)[:2]
     return (peaks_idx, half, full)
 
 
-def find_datapoints(img, bw='ISJ', kernel='gaussian'):
-    hst_xy = find_histogram(img)
-    kde_xy = find_kde(img, bw=bw, kernel=kernel)
+def find_datapoints(img, bw='silverman', kernel='gaussian'):
+    hst_xy = find_histogram(img.ravel())
+    kde_xy = find_kde(img.ravel(), bw=bw, kernel=kernel)
     peaks = find_curves(kde_xy[1])
     return hst_xy, kde_xy, peaks
 
 
 def density(values, bw='silverman', npoints=512, kernel='gaussian'):
     estimator = FFTKDE(kernel=kernel, bw=bw)
-    kernel_points, kernel_values = estimator.fit(values).evaluate(npoints)
-    return kernel_points, kernel_values, estimator.bw
+    x, y = estimator.fit(values).evaluate(npoints)
+    y = y[(x>=0) & (x<=255)] 
+    x = x[(x>=0) & (x<=255)] 
+    return x, y, estimator.bw
 
 
 # PROBLEMA AQUI, as vezes retorna nenhum
@@ -89,6 +97,8 @@ def find_modeid(data, bws):
         mode = np.copy(mode_new)
         tmp_array = np.array([[bw]*g.shape[0], mode_new, g]).T
         dataframe.append(tmp_array)
+
+     
     return dataframe
 
 # REVER ESTA FUNCAO
@@ -115,16 +125,17 @@ def optimal_mode(dataset, modeid, max_bandwidth):
     return opt_bandwidth, mode, slope
 
 
-def analyze(distribution):
+def analyze(distribution, max_modes=20):
     # Initial bw estimator based on Silverman
     dist = distribution.ravel()
 
     kx, ky, bw = density(dist)
-    bws = bw * 10**np.linspace(1, -1, 101)
+    bws = bw * np.logspace(1, -1, 201)
 
     # Extraction of modes and bandwidths
     mode_lst = find_modeid(dist, bws)
     mode_lst = np.concatenate(mode_lst, axis=0)
+    mode_lst = mode_lst[mode_lst[:,2] <= max_modes]
 
     return mode_lst
 

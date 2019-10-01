@@ -22,6 +22,7 @@ def build_image_sample(n_modes=4, m=512, n=512):
     x = random_modes_distribution(m*n, mu, sigma, p)
     return x.reshape(m, n)
 
+
 def build_circle(img=None, m=512, n=512, c=127, x=None, y=None, r=None):
     if img is None:
         img = np.zeros((m,n))
